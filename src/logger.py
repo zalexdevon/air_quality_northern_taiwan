@@ -9,19 +9,26 @@ def configure_logger():
     os.makedirs(logs_path, exist_ok=True)
     date_format = "%d-%m-%Y-%H-%M-%S"
 
-    # Get giờ Việt Nam
-    utc_now = datetime.now(pytz.utc)
+    # Get Vietnam timezone
     vietnam_tz = pytz.timezone("Asia/Ho_Chi_Minh")
-    vietnam_time = utc_now.astimezone(vietnam_tz)
+    vietnam_time = datetime.now(pytz.utc).astimezone(vietnam_tz)
 
-    # Get tên file
+    # Create log file with Vietnam time
     log_file = f"{vietnam_time.strftime(date_format)}.log"
     log_file_path = os.path.join(logs_path, log_file)
+
+    # Custom converter for formatter
+    def vietnam_time_converter(*args):
+        return datetime.now(pytz.utc).astimezone(vietnam_tz).timetuple()
+
+    # Apply converter
+    logging.Formatter.converter = vietnam_time_converter
 
     logging.basicConfig(
         filename=log_file_path,
         format="[ %(asctime)s ] %(lineno)d %(name)s - %(levelname)s\n %(message)s",
         level=logging.INFO,
-        force=True,  # Needed to reconfigure logging if already set
+        force=True,
     )
+
     return log_file_path
