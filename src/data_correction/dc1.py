@@ -4,6 +4,32 @@ from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
+import numpy as np
+
+special_chars = ["#", "*", "x"]
+
+
+def is_not_valid(value):
+    if pd.isnull(value):
+        return False
+
+    for char in special_chars:
+        if char in value:
+            return True
+
+    return False
+
+
+def replace_not_valid_value_by_nan(col):
+    index_not_valid = col.index[col.apply(is_not_valid)]
+    col[index_not_valid] = np.nan
+    return col
+
+
+def replace_value_l0_by_nan(col):
+    value_l0_index = col.index[col < 0]
+    col[value_l0_index] = np.nan
+    return col
 
 
 class BeforeTransformer(BaseEstimator, TransformerMixin):
@@ -17,35 +43,36 @@ class BeforeTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None):
         df = X
 
-        # Xóa các cột không cần thiết
-        df = df.drop(
-            columns=[
-                "taken_time",
-            ]
-        )
+        # Xóa các cột không liên quan
+        df = df.drop(columns=["time", "station", "AMB_TEMP", "time_datetime"])
 
-        #  Đổi tên cột
+        # Xóa các cột có tỉ lệ missing lớn
+        ## Trong các cột (ngoại trừ cột mục tiêu), thay thế tất cả các giá trị mà có chứa 1 trong 3 kí tự đặc biệt sau: ['#', '*', 'x'] thành np.nan
+
+        target_col = "temperature_cat"
+        feature_cols = list(set(df.columns.tolist()) - set([target_col]))
+        df[feature_cols] = df[feature_cols].apply(replace_not_valid_value_by_nan)
+        df["CH4"].unique()
+
+        df = df.drop(columns=["UVB", "PH_RAIN", "RAIN_COND", "NMHC", "CH4", "THC"])
+
+        # Đổi tên cột
         rename_dict = {
-            "pH": "pH_num",
-            "Iron": "Iron_num",
-            "Nitrate": "Nitrate_num",
-            "Chloride": "Chloride_num",
-            "Lead": "Lead_num",
-            "Zinc": "Zinc_num",
-            "Color": "Color_ord",
-            "Turbidity": "Turbidity_num",
-            "Fluoride": "Fluoride_num",
-            "Copper": "Copper_num",
-            "Odor": "Odor_num",
-            "Sulfate": "Sulfate_num",
-            "Conductivity": "Conductivity_num",
-            "Chlorine": "Chlorine_num",
-            "Manganese": "Manganese_num",
-            "Total Dissolved Solids": "Total_Dissolved_Solids_num",
-            "Source": "Source_nom",
-            "Water Temperature": "Water_Temperature_num",
-            "Air Temperature": "Air_Temperature_num",
-            "Target": "Target_target",
+            "CO": "CO_num",
+            "NO": "NO_num",
+            "NO2": "NO2_num",
+            "NOx": "NOx_num",
+            "O3": "O3_num",
+            "PM10": "PM10_num",
+            "PM2.5": "PM2_5_num",
+            "RAINFALL": "RAINFALL_num",
+            "RH": "RH_num",
+            "SO2": "SO2_num",
+            "WD_HR": "WD_HR_num",
+            "WIND_DIREC": "WIND_DIREC_num",
+            "WIND_SPEED": "WIND_SPEED_num",
+            "WS_HR": "WS_HR_num",
+            "temperature_cat": "temperature_cat_target",
         }
 
         df = df.rename(columns=rename_dict)
@@ -69,6 +96,25 @@ class BeforeTransformer(BaseEstimator, TransformerMixin):
             + ordinal_cols
             + [target_col]
         ]
+
+        # Kiểm tra kiểu dữ liệu các cột
+        ## Thay thế các giá trị 'NR' trong cột RAINFALL_num bằng 0
+        col_name = "RAINFALL_num"
+        replace_list = [(["NR"], 0)]
+        df[col_name] = myfuncs.replace_in_series_33(df[col_name], replace_list)
+
+        ## Thay thế các giá trị 'NR' trong cột PM2_5_num bằng 0
+        col_name = "PM2_5_num"
+        replace_list = [(["NR"], 0)]
+        df[col_name] = myfuncs.replace_in_series_33(df[col_name], replace_list)
+
+        ## Chuyển các cột sai dữ liệu về kiểu dữ liệu float
+        df[feature_cols] = df[feature_cols].astype("float32")
+
+        # Kiểm tra nội dung các cột numeric
+        ## Thay thế các giá trị âm trong các cột này thành np.nan
+        col_names = ["NO_num", "NO2_num", "O3_num", "SO2_num"]
+        df[col_names] = df[col_names].apply(replace_value_l0_by_nan)
 
         return df
 
