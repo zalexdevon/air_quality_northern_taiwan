@@ -1,10 +1,11 @@
 import pandas as pd
+import numpy as np
 from Mylib import myfuncs
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
-import numpy as np
+
 
 special_chars = ["#", "*", "x"]
 
@@ -48,12 +49,13 @@ class BeforeTransformer(BaseEstimator, TransformerMixin):
 
         # Xóa các cột có tỉ lệ missing lớn
         ## Trong các cột (ngoại trừ cột mục tiêu), thay thế tất cả các giá trị mà có chứa 1 trong 3 kí tự đặc biệt sau: ['#', '*', 'x'] thành np.nan
-
+        special_chars = ["#", "*", "x"]
         target_col = "temperature_cat"
         feature_cols = list(set(df.columns.tolist()) - set([target_col]))
         df[feature_cols] = df[feature_cols].apply(replace_not_valid_value_by_nan)
         df["CH4"].unique()
 
+        ## Các cột có tỉ lệ missing lớn > 10% là: UVB, PH_RAIN, RAIN_COND, NMHC, CH4, THC
         df = df.drop(columns=["UVB", "PH_RAIN", "RAIN_COND", "NMHC", "CH4", "THC"])
 
         # Đổi tên cột
@@ -98,6 +100,8 @@ class BeforeTransformer(BaseEstimator, TransformerMixin):
         ]
 
         # Kiểm tra kiểu dữ liệu các cột
+        feature_cols = list(set(df.columns.tolist()) - set([target_col]))
+
         ## Thay thế các giá trị 'NR' trong cột RAINFALL_num bằng 0
         col_name = "RAINFALL_num"
         replace_list = [(["NR"], 0)]
