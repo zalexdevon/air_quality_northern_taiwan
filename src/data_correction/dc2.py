@@ -18,7 +18,7 @@ class TransformerOnTrainAndTest(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None):
         df = X
 
-        df = df.drop(columns=["Iron_num"])
+        df = df.drop(columns=["WS_HR_num", "NOx_num", "PM2_5_num", "WD_HR_num"])
 
         return df
 
@@ -33,12 +33,6 @@ class TransformerOnTrain(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         df = X
-
-        cols = [
-            "Nitrate_num",
-            "Chloride_num",
-        ]
-        df[cols] = 0
 
         self.is_fitted_ = True
         return df
